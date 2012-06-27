@@ -38,6 +38,14 @@ nodespec.describe("present-express", function() {
         it("should handle error in layouts")
         it("should handle JSON response")
     })
+
+    this.describe("create", function(it) {
+        it("should make a presenter function")
+    })
+
+    this.describe("extend", function(it) {
+        it("should extend a presenter function")
+    })
 })
 
 nodespec.exec();
