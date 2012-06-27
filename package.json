@@ -1,0 +1,18 @@
+{
+  "name": "present-express",
+  "version": "0.0.1",
+  "description": "Mustache behind presenters for expressjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "node ./index-spec.js"
+  },
+  "author": "Glen Mailer",
+  "license": "MIT",
+  "dependencies": {
+    "hogan": "~1.0.5-dev"
+  },
+  "devDependencies": {
+    "nodespec": "~0.3.1",
+    "sinon": "~1.3.4"
+  }
+}
