@@ -21,49 +21,46 @@ exports.init = function(settings) {
   function getPresent(name) {
     return deps.require(name);
   }
-  function getTemplate(name, callback) {
+  getTemplate.cache = {};
+  function getTemplate(name) {
+    if (getTemplate.cache[name]) return getTemplate.cache[name];
     var filename = path.join(templates, name) + '.' + text;
-    deps.require('fs').readFile(filename, 'utf8', function(err, data) {
-      if (err) return callback(err);
-      var template = deps.require('hogan').compile(data);
-      callback(null, template);
-    });
+    var data = deps.require('fs').readFileSync(filename, 'utf8');
+    return getTemplate.cache[name] = deps.require('hogan').compile(data);
   }
-  function render(data, template, callback) {
-    callback(null, template.render(data));
-  }
-  function renderLayout(data, template, layout, callback) {
+  function renderLayout(data, template, layout) {
     if (Array.isArray(layout)) {
       var head = layout.shift();
       if (!layout.length) {
-        return getTemplate(head, function(err, layout) {
-          if (err) return callback(err);
-          callback(null, layout.render(data, {content: template}));
-        })
+        var compiled = getTemplate(head);
+        return compiled.render(data, {content: template});
       }
-      return renderLayout(data, template, layout, function(err, rendered) {
-        if (err) return callback(err);
-        getTemplate(head, function(err, head_layout) {
-          if (err) return callback(err);
-          callback(null, head_layout.render(data, {content: rendered}));
-        })
-      })
+      var rendered = renderLayout(data, template, layout);
+      var compiled = getTemplate(head);
+      return compiled.render(data, {content: rendered});
     }
-    return renderLayout(data, template, [layout], callback);
+    return renderLayout(data, template, [layout]);
+  }
+
+  exports.render = function(template, data) {
+    var compiled = getTemplate(template);
+    return compiled.render(data);
   }
 
   return function(present, options, callback) {
     var Present = getPresent(present);
     Present(options, function(err, context) {
       if (err) return callback(err);
-      getTemplate(context.template, function(err, template) {
-        if (err) return callback(err);
+      try {
+        var template = getTemplate(context.template);
         if (!context.layout) {
-          render(context.data, template, callback);
+          callback(null, render(context.data, template));
         } else {
-          renderLayout(context.data, template, context.layout, callback);
+          callback(null, renderLayout(context.data, template, context.layout));
         }
-      })
+      } catch (ex) {
+        callback(ex);
+      }
     });
   }
 }
