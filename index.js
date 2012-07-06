@@ -29,6 +29,28 @@ exports.init = function(settings) {
       callback(null, template);
     });
   }
+  function render(data, template, callback) {
+    callback(null, template.render(data));
+  }
+  function renderLayout(data, template, layout, callback) {
+    if (Array.isArray(layout)) {
+      var head = layout.shift();
+      if (!layout.length) {
+        return getTemplate(head, function(err, layout) {
+          if (err) return callback(err);
+          callback(null, layout.render(data, {content: template}));
+        })
+      }
+      return renderLayout(data, template, layout, function(err, rendered) {
+        if (err) return callback(err);
+        getTemplate(head, function(err, head_layout) {
+          if (err) return callback(err);
+          callback(null, head_layout.render(data, {content: rendered}));
+        })
+      })
+    }
+    return renderLayout(data, template, [layout], callback);
+  }
 
   return function(present, options, callback) {
     var Present = getPresent(present);
@@ -37,12 +59,9 @@ exports.init = function(settings) {
       getTemplate(context.template, function(err, template) {
         if (err) return callback(err);
         if (!context.layout) {
-          callback(null, template.render(context.data));
+          render(context.data, template, callback);
         } else {
-          getTemplate(context.layout, function(err, layout) {
-            if (err) return callback(err);
-            callback(null, layout.render(context.data, {content: template}));
-          })
+          renderLayout(context.data, template, context.layout, callback);
         }
       })
     });
