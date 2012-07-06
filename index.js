@@ -32,16 +32,16 @@ exports.init = function(settings) {
 
   return function(present, options, callback) {
     var Present = getPresent(present);
-    Present(options, function(err, layout, template, data) {
+    Present(options, function(err, context) {
       if (err) return callback(err);
-      getTemplate(template, function(err, template) {
+      getTemplate(context.template, function(err, template) {
         if (err) return callback(err);
-        if (!layout) {
-          callback(null, template.render(data));
+        if (!context.layout) {
+          callback(null, template.render(context.data));
         } else {
-          getTemplate(layout, function(err, layout) {
+          getTemplate(context.layout, function(err, layout) {
             if (err) return callback(err);
-            callback(null, layout.render(data, {content: template}));
+            callback(null, layout.render(context.data, {content: template}));
           })
         }
       })
@@ -51,10 +51,11 @@ exports.init = function(settings) {
 
 exports.create = function(populate) {
   return function(options, callback) {
-    var context = {};
-    context.layout = false;
-    context.template = '';
-    context.data = {};
+    var context = {
+      layout: false,
+      template: '',
+      data: {}
+    };
     execute_populate(context, options, populate, callback);
   }
 }
@@ -62,9 +63,9 @@ exports.create = function(populate) {
 exports.extend = function(base, populate) {
   return function(options, callback) {
     // TODO: avoid repetition preferrably without looping over arguments
-    base(options, function(err, layout, template, data) {
+    base(options, function(err, context) {
       if (err) return callback(err);
-      var context = {layout: layout, template: template, data: data};
+      context = Object.create(context);
       execute_populate(context, options, populate, callback);
     })
   }
@@ -78,7 +79,7 @@ function execute_populate(context, options, populate, callback) {
       populate = function(_, fn) {fn()};
     }
     populate.call(context, options, function(err) {
-      callback(err, context.layout, context.template, context.data);
+      callback(err, context);
     })
   } catch (ex) {
     callback(ex);
